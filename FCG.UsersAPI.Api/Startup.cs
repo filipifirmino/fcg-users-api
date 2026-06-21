@@ -31,7 +31,7 @@ namespace FCG.UsersAPI.Api
                 });
             services.AddJwtAuthentication(_Configuration);
             services.AddAuthorizationPolicies();
-            services.AddConfigureInfra();
+            services.AddConfigureInfra(_Configuration);
             services.AddApplicationConfiguration();
             services.AddHttpClient();
             services.AddSwaggerGen(s =>
