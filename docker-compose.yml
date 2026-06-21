@@ -1,0 +1,16 @@
+services:
+  users-postgres:
+    image: postgres:16
+    container_name: fcg_users_postgres
+    environment:
+      POSTGRES_USER: postgree
+      POSTGRES_PASSWORD: postgree
+      POSTGRES_DB: fcg_users
+    ports:
+      - "5433:5432"
+    volumes:
+      - users_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  users_postgres_data:
