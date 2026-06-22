@@ -5,6 +5,9 @@ using FCG.UsersAPI.Domain.Entities;
 using FCG.UsersAPI.Domain.Interfaces;
 using FCG.UsersAPI.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
+using FCG.UsersAPI.Application.Events;
+using MassTransit;
+
 
 namespace FCG.UsersAPI.Application.Services
 {
@@ -12,10 +15,12 @@ namespace FCG.UsersAPI.Application.Services
     {
         private readonly IUserRepository _repository;
         private readonly ILogger<UserService> _logger;
-        public UserService(IUserRepository repository, ILogger<UserService> logger)
+        private readonly IPublishEndpoint _publishEndpoint;
+        public UserService(IUserRepository repository, ILogger<UserService> logger, IPublishEndpoint publishEndpoint)
         {
             _repository = repository;
             _logger = logger;
+            _publishEndpoint = publishEndpoint;
         }
         public async Task<IEnumerable<User>?> GetAll() => await _repository.GetAllAsync();
 
@@ -58,6 +63,16 @@ namespace FCG.UsersAPI.Application.Services
                 );
 
                 var createdUser = await _repository.AddAsync(user);
+
+                await _publishEndpoint.Publish(new UserCreatedEvent
+                {
+                    UserId = createdUser.Id,
+                    Name = createdUser.Name,
+                    Email = createdUser.Email.Value,
+                    CreatedAt = createdUser.CreatedAt
+                });
+
+                _logger.LogInformation("UserCreatedEvent publicado para usuário {UserId}",createdUser.Id);
 
                 _logger.LogInformation("Usuário criado com sucesso: {Email}", request.Email);
 
