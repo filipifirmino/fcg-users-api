@@ -48,6 +48,7 @@ Generated\ Files/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+/.vs/FCG_GRUPO_14
 
 # Build Results of an ATL Project
 [Dd]ebugPS/
@@ -205,7 +206,6 @@ PublishScripts/
 # NuGet v3's project.json files produces more ignorable files
 *.nuget.props
 *.nuget.targets
-
 # Microsoft Azure Build Output
 csx/
 *.build.csdef
@@ -213,7 +213,6 @@ csx/
 # Microsoft Azure Emulator
 ecf/
 rcf/
-
 # Windows Store app package directories and files
 AppPackages/
 BundleArtifacts/
@@ -397,11 +396,5 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 .vs/GitHubRepo/DesignTimeBuild/.dtbcache.v2
+.vs/GitHubRepo/DesignTimeBuild/.dtbcache.v2
 *.v2
-
-# Claude
-Claude.md
-.claude/*
-
-# Git
-.gitignore
