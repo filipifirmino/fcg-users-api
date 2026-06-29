@@ -60,11 +60,17 @@ namespace FCG.UsersAPI.Api
                 );
             });
 
-            services.AddDbContext<AppDbContext>(options => options.UseNpgsql(_Configuration.GetConnectionString("Postgres")).UseSnakeCaseNamingConvention());
+            var connectionString = _Configuration.GetConnectionString("Postgres");
+            if (!string.IsNullOrEmpty(connectionString))
+                services.AddDbContext<AppDbContext>(options =>
+                    options.UseNpgsql(connectionString).UseSnakeCaseNamingConvention());
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            using (var scope = app.ApplicationServices.CreateScope())
+                scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -76,7 +82,6 @@ namespace FCG.UsersAPI.Api
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
-            // app.UseMiddleware<RequestTimingMiddleware>();
             app.UseGlobalExceptionHandler();
             app.UseMiddleware<RequestTimingMiddleware>();
             app.UseEndpoints(endpoints =>

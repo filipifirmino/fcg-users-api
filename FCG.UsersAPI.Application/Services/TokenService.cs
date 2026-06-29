@@ -23,7 +23,7 @@ namespace FCG.UsersAPI.Application.Services
         public string GenerateToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:SecretKey"]);
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -50,7 +50,7 @@ namespace FCG.UsersAPI.Application.Services
         public async Task<User> ValidateTokenAsync(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:SecretKey"]);
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]);
 
             var validationParameters = new TokenValidationParameters
             {

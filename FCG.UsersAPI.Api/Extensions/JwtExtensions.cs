@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -12,6 +13,7 @@ namespace FCG.UsersAPI.Api.Extensions
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                .AddJwtBearer(options =>
                {
+                   options.MapInboundClaims = true;
                    options.TokenValidationParameters = new TokenValidationParameters
                    {
                        ValidateIssuer = true,
@@ -22,7 +24,9 @@ namespace FCG.UsersAPI.Api.Extensions
                        ValidAudience = configuration["Jwt:Audience"],
                        IssuerSigningKey = new SymmetricSecurityKey(
                            Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"])),
-                       ClockSkew = TimeSpan.Zero
+                       ClockSkew = TimeSpan.Zero,
+                       RoleClaimType = ClaimTypes.Role,
+                       NameClaimType = ClaimTypes.NameIdentifier
                    };
 
                    options.Events = new JwtBearerEvents
