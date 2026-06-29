@@ -68,6 +68,9 @@ namespace FCG.UsersAPI.Api
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            using (var scope = app.ApplicationServices.CreateScope())
+                scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
