@@ -1,6 +1,6 @@
 services:
   users-postgres:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: fcg_users_postgres
     environment:
       POSTGRES_USER: postgree
@@ -10,6 +10,11 @@ services:
       - "5433:5432"
     volumes:
       - users_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgree -d fcg_users"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   rabbitmq:
@@ -21,7 +26,34 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
+
+  users-api:
+    build: .
+    container_name: fcg_users_api
+    ports:
+      - "8080:8080"
+    environment:
+      ConnectionStrings__Postgres: "Host=users-postgres;Port=5432;Database=fcg_users;Username=postgree;Password=postgree"
+      Jwt__SecretKey: ${JWT_SECRET}
+      Jwt__Issuer: "FCG.Api"
+      Jwt__Audience: "FCG.Client"
+      Jwt__ExpirationMinutes: "60"
+      RabbitMq__Host: "rabbitmq"
+      RabbitMq__Username: "guest"
+      RabbitMq__Password: "guest"
+      ASPNETCORE_ENVIRONMENT: "Production"
+    depends_on:
+      users-postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
 
 volumes:
   users_postgres_data:
