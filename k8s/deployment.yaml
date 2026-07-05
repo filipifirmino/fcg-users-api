@@ -3,6 +3,7 @@ kind: Deployment
 
 metadata:
   name: users-api
+  namespace: fcg
 
 spec:
   replicas: 1
