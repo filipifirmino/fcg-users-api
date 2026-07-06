@@ -5,7 +5,7 @@ using FCG.UsersAPI.Domain.Entities;
 using FCG.UsersAPI.Domain.Interfaces;
 using FCG.UsersAPI.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
-using FCG.UsersAPI.Application.Events;
+using FCG.Events;
 using MassTransit;
 
 

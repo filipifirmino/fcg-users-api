@@ -16,6 +16,7 @@ Microsserviço responsável pelo cadastro, autenticação JWT e autorização de
 - [Variáveis de Ambiente](#variáveis-de-ambiente)
 - [Rodando com Docker](#rodando-com-docker)
 - [Rodando localmente](#rodando-localmente)
+- [Kubernetes](#kubernetes)
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Logs](#logs)
 
@@ -39,20 +40,19 @@ O serviço adota **Clean Architecture**, organizando o código em camadas com de
 
 ```
 fcg-users-api/
-└── src/
-    ├── FCG.Users.Domain        # Entidades, value objects, enums e interfaces
-    ├── FCG.Users.Application   # Casos de uso: AuthService, UserService, TokenService
-    ├── FCG.Users.Infra         # EF Core, repositórios, migrations
-    └── FCG.Users.Api           # Controllers, middlewares, startup, publishers
+├── FCG.UsersAPI.Domain        # Entidades, value objects, enums e interfaces
+├── FCG.UsersAPI.Application   # Casos de uso: AuthService, UserService, TokenService
+├── FCG.UsersAPI.Infra         # EF Core, repositórios, migrations
+└── FCG.UsersAPI.Api           # Controllers, middlewares, startup
 ```
 
 **Fluxo de dependências:**
 ```
-FCG.Users.Api  →  FCG.Users.Application  →  FCG.Users.Domain
-FCG.Users.Infra  →  FCG.Users.Application  →  FCG.Users.Domain
+FCG.UsersAPI.Api    →  FCG.UsersAPI.Application  →  FCG.UsersAPI.Domain
+FCG.UsersAPI.Infra  →  FCG.UsersAPI.Application  →  FCG.UsersAPI.Domain
 ```
 
-`FCG.Users.Domain` não depende de nenhum outro projeto da solução.
+`FCG.UsersAPI.Domain` não depende de nenhum outro projeto da solução. Note que `Infra` referencia `Application` — é de lá que vem o contrato `UserCreatedEvent` usado para registrar o consumer/publisher no MassTransit.
 
 ### Padrões aplicados
 
@@ -106,20 +106,34 @@ FCG.Users.Infra  →  FCG.Users.Application  →  FCG.Users.Domain
 
 Todas as respostas seguem o envelope padronizado `ApiResponse<T>` com os campos `data`, `success` e `errors`.
 
-### Autenticação — `/api/v1/auth`
+### Autenticação — `/api/v1/Auth`
 
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `POST` | `/api/v1/auth/login` | Não | Login — retorna JWT Bearer |
+| `POST` | `/api/v1/Auth/login` | Não | Login — retorna JWT Bearer |
 
-### Usuários — `/api/v1/users`
+### Usuários — `/api/v1/User`
 
 | Método | Rota | Auth | Perfil | Descrição |
 |---|---|---|---|---|
-| `POST` | `/api/v1/users/register` | Não | — | Cadastro — publica `UserCreatedEvent` |
-| `GET` | `/api/v1/users` | Sim | Admin | Lista todos os usuários |
-| `GET` | `/api/v1/users/{id}` | Sim | Admin | Busca usuário por ID |
-| `PATCH` | `/api/v1/users/{id}` | Sim | User / Admin | Atualiza nome ou status ativo |
+| `POST` | `/api/v1/User/register` | Não | — | Cadastro — publica `UserCreatedEvent` |
+| `GET` | `/api/v1/User/get-all` | Sim | Admin | Lista todos os usuários |
+| `GET` | `/api/v1/User/get-by-id` | Sim | Admin | Busca usuário por ID |
+| `PATCH` | `/api/v1/User/update-by-id` | Sim | User / Admin | Atualiza nome ou status ativo |
+
+> As rotas usam `[controller]` (nome da classe sem o sufixo `Controller`), por isso `AuthController` → `/api/v1/Auth` e `UserController` → `/api/v1/User` (singular).
+
+### Formato do corpo — `register` e `login`
+
+`Email` e `Password` são Value Objects, então o JSON precisa envolver o valor em um objeto:
+
+```json
+{
+  "name": "Nome do Usuário",
+  "email": { "value": "usuario@fcg.com" },
+  "password": { "value": "Senha@123" }
+}
+```
 
 ### Autenticação no Swagger
 
@@ -141,9 +155,11 @@ Todas as respostas seguem o envelope padronizado `ApiResponse<T>` com os campos 
 
 ### UserCreatedEvent
 
-Publicado no exchange `user.created` via RabbitMQ após registro bem-sucedido.
+Publicado no exchange/fila `UserCreated` via RabbitMQ após registro bem-sucedido.
 
 ```csharp
+namespace FCG.Events;
+
 public record UserCreatedEvent
 {
     public Guid UserId { get; init; }
@@ -154,6 +170,8 @@ public record UserCreatedEvent
 ```
 
 **Consumer:** NotificationsAPI
+
+> **Namespace compartilhado (`FCG.Events`):** o MassTransit identifica o tipo de uma mensagem no wire pelo namespace + nome do tipo .NET, não pelo assembly. A classe `UserCreatedEvent` existe fisicamente em cada repositório (UsersAPI publica, NotificationsAPI consome), mas **precisa declarar o mesmo namespace `FCG.Events`** nos dois lados — caso contrário, publisher e consumer geram identidades de mensagem diferentes e o evento é descartado silenciosamente pelo consumer (fila `_skipped`, sem erro nem exceção). Ao alterar esse contrato, replique a mudança (e o namespace) em `fcg-notifications-api`.
 
 ---
 
@@ -208,44 +226,83 @@ docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management-
 
 ```bash
 dotnet restore
-dotnet ef database update --project src/FCG.Users.Infra --startup-project src/FCG.Users.Api
+dotnet ef database update --project FCG.UsersAPI.Infra --startup-project FCG.UsersAPI.Api
 ```
 
 ### 3. Execute a API
 
 ```bash
-dotnet run --project src/FCG.Users.Api/FCG.Users.Api.csproj
+dotnet run --project FCG.UsersAPI.Api/FCG.UsersAPI.Api.csproj
 ```
+
+---
+
+## Kubernetes
+
+Os manifests estão em `/k8s/`, e todos os recursos devem ser criados no namespace `fcg`:
+
+```bash
+kubectl apply -f k8s/00-namespace.yaml
+kubectl apply -f k8s/
+```
+
+| Arquivo | Descrição |
+|---|---|
+| `00-namespace.yaml` | Cria o namespace `fcg` (aplicado primeiro automaticamente por ordem alfabética) |
+| `configmap.yaml` | `Jwt__Issuer`, `Jwt__Audience`, `Jwt__ExpirationMinutes`, `RabbitMq__Host`, `RabbitMq__Username` |
+| `secret.yaml` | `ConnectionStrings__Postgres`, `Jwt__SecretKey`, `RabbitMq__Password` (base64) |
+| `deployment.yaml` | Deployment com 1 réplica |
+| `service.yaml` | Service `ClusterIP`, porta 8080 |
+
+> **JWT compartilhado:** `Jwt__SecretKey` e `Jwt__Issuer` precisam ser idênticos aos do CatalogAPI — é o mesmo token que valida a compra do jogo.
 
 ---
 
 ## Estrutura do Projeto
 
 ```
-src/
-├── FCG.Users.Api/
-│   ├── Controllers/         # AuthController, UserController
-│   ├── Extensions/          # JwtExtensions, SwaggerExtensions, AuthorizationPoliciesExtensions
-│   ├── Middlewares/         # GlobalExceptionHandler
-│   ├── Events/Publishers/   # UserCreatedEventPublisher
+fcg-users-api/
+├── FCG.UsersAPI.Api/
+│   ├── Authorization/       # Policies (AdminOnly, UserOnly, UserOrAdmin)
+│   ├── Common/               # ApiResponse<T> — envelope de resposta
+│   ├── Controllers/          # AuthController, UserController, BaseController
+│   ├── Extensions/           # JwtExtensions, AuthorizationPoliciesExtensions, GlobalExceptionHandlerExtensions
+│   ├── Middlewares/          # GlobalExceptionHandler, RequestTimingMiddleware
+│   ├── Program.cs
+│   ├── Startup.cs
 │   └── appsettings.json
 │
-├── FCG.Users.Application/
-│   ├── Services/            # AuthService, UserService, TokenService
-│   ├── DTOs/                # Modelos de request e response
-│   └── Interfaces/          # IAuthService, IUserService
+├── FCG.UsersAPI.Application/
+│   ├── Configuration/        # ConfigureApplication (DI)
+│   ├── Services/              # AuthService, UserService, TokenService
+│   ├── DTOs/                  # Login/Register request e response
+│   ├── Events/
+│   │   └── UserCreatedEvent.cs   # namespace FCG.Events (compartilhado com NotificationsAPI)
+│   ├── Exceptions/            # RegisterException
+│   └── Interfaces/            # IAuthService, IUserService, ITokenService
 │
-├── FCG.Users.Domain/
-│   ├── Entities/            # User
-│   ├── ValueObjects/        # Email, Password
-│   ├── Enums/               # UserRole
-│   └── Interfaces/          # IUserRepository
+├── FCG.UsersAPI.Domain/
+│   ├── Common/                # Result<T>
+│   ├── Entities/               # User
+│   ├── ValueObjects/           # Email, Password
+│   ├── Enums/                  # UserRole
+│   └── Interfaces/             # IUserRepository, IRepositoryBase
 │
-└── FCG.Users.Infra/
-    ├── Repositories/        # UserRepository
-    ├── Mappings/            # Configurações EF Core (Fluent API)
-    ├── Migrations/          # Histórico de migrations
-    └── AppDbContext.cs
+├── FCG.UsersAPI.Infra/
+│   ├── Configuration/          # ConfigureInfra (DI + MassTransit + SetEntityName)
+│   ├── Repositories/            # UserRepository, RepositoryBase
+│   ├── Migrations/              # Histórico de migrations EF Core
+│   ├── AppDbContext.cs
+│   └── AppDbContextFactory.cs
+│
+├── FCG.UsersAPI.Tests/
+│   ├── Unit/
+│   ├── Integration/
+│   └── BDD/
+│
+├── k8s/                        # Manifests Kubernetes (namespace fcg)
+├── docker-compose.yml
+└── Dockerfile
 ```
 
 ---

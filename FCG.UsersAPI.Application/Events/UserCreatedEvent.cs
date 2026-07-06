@@ -1,4 +1,4 @@
-﻿namespace FCG.UsersAPI.Application.Events
+﻿namespace FCG.Events
 {
     public record UserCreatedEvent
     {

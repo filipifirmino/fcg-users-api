@@ -36,7 +36,7 @@ namespace FCG.UsersAPI.Api
             services.AddHttpClient();
             services.AddSwaggerGen(s =>
             {
-                s.SwaggerDoc("v1", new OpenApiInfo { Title = "FCG Games", Version = "v1" });
+                s.SwaggerDoc("v1", new OpenApiInfo { Title = "FCG User API", Version = "v1" });
                 var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath =
        Path.Combine(AppContext.BaseDirectory, xmlFile);

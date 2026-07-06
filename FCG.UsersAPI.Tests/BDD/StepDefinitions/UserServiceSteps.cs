@@ -1,5 +1,5 @@
 using FCG.UsersAPI.Application.DTOs;
-using FCG.UsersAPI.Application.Events;
+using FCG.Events;
 using FCG.UsersAPI.Application.Services;
 using FCG.UsersAPI.Domain.Entities;
 using FCG.UsersAPI.Domain.Interfaces;

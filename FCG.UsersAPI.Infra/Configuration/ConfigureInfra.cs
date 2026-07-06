@@ -1,4 +1,5 @@
-﻿using FCG.UsersAPI.Domain.Interfaces;
+﻿using FCG.Events;
+using FCG.UsersAPI.Domain.Interfaces;
 using FCG.UsersAPI.Infra.Repositories;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +27,12 @@ public static class ConfigureInfra
                     h.Username(configuration["RabbitMq:Username"] ?? "guest");
                     h.Password(configuration["RabbitMq:Password"] ?? "guest");
                 });
+
+                // O nome do exchange precisa ser igual em todos os serviços que publicam/consomem
+                // este evento. Sem isso, o MassTransit usa o namespace .NET completo do tipo como
+                // nome do exchange, e cada serviço tem sua própria cópia do contrato em um namespace
+                // diferente — o que faz publisher e consumer conversarem com exchanges diferentes.
+                cfg.Message<UserCreatedEvent>(x => x.SetEntityName("UserCreated"));
 
                 cfg.UseMessageRetry(r =>
                     r.Interval(3, TimeSpan.FromSeconds(5)));

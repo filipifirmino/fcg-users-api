@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FCG.UsersAPI.Domain\FCG.UsersAPI.Domain.csproj" />
+    <ProjectReference Include="..\FCG.UsersAPI.Application\FCG.UsersAPI.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
