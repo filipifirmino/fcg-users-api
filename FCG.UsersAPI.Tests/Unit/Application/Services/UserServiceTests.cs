@@ -1,5 +1,6 @@
 using FCG.UsersAPI.Application.DTOs;
 using FCG.Events;
+using FCG.UsersAPI.Application.Interfaces;
 using FCG.UsersAPI.Application.Services;
 using FCG.UsersAPI.Domain.Entities;
 using FCG.UsersAPI.Domain.Interfaces;
@@ -14,6 +15,7 @@ public class UserServiceTests
     private readonly Mock<IUserRepository> _repositoryMock;
     private readonly Mock<ILogger<UserService>> _loggerMock;
     private readonly Mock<IPublishEndpoint> _publishEndpointMock;
+    private readonly Mock<INotificationQueuePublisher> _notificationQueuePublisherMock;
     private readonly UserService _sut;
     private readonly Faker _faker;
 
@@ -22,7 +24,8 @@ public class UserServiceTests
         _repositoryMock = new Mock<IUserRepository>();
         _loggerMock = new Mock<ILogger<UserService>>();
         _publishEndpointMock = new Mock<IPublishEndpoint>();
-        _sut = new UserService(_repositoryMock.Object, _loggerMock.Object, _publishEndpointMock.Object);
+        _notificationQueuePublisherMock = new Mock<INotificationQueuePublisher>();
+        _sut = new UserService(_repositoryMock.Object, _loggerMock.Object, _publishEndpointMock.Object, _notificationQueuePublisherMock.Object);
         _faker = new Faker("pt_BR");
     }
 

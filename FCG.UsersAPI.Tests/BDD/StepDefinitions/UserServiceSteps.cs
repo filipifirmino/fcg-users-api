@@ -1,5 +1,6 @@
 using FCG.UsersAPI.Application.DTOs;
 using FCG.Events;
+using FCG.UsersAPI.Application.Interfaces;
 using FCG.UsersAPI.Application.Services;
 using FCG.UsersAPI.Domain.Entities;
 using FCG.UsersAPI.Domain.Interfaces;
@@ -18,6 +19,7 @@ public class UserServiceSteps
     private readonly Mock<IUserRepository> _repositoryMock = new();
     private readonly Mock<ILogger<UserService>> _loggerMock = new();
     private readonly Mock<IPublishEndpoint> _publishEndpointMock = new();
+    private readonly Mock<INotificationQueuePublisher> _notificationQueuePublisherMock = new();
     private UserService _sut = null!;
 
     private Guid _userId;
@@ -29,7 +31,7 @@ public class UserServiceSteps
 
     public UserServiceSteps()
     {
-        _sut = new UserService(_repositoryMock.Object, _loggerMock.Object, _publishEndpointMock.Object);
+        _sut = new UserService(_repositoryMock.Object, _loggerMock.Object, _publishEndpointMock.Object, _notificationQueuePublisherMock.Object);
     }
 
     // ---- Given ----

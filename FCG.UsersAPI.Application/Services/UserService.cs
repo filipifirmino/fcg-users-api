@@ -16,11 +16,17 @@ namespace FCG.UsersAPI.Application.Services
         private readonly IUserRepository _repository;
         private readonly ILogger<UserService> _logger;
         private readonly IPublishEndpoint _publishEndpoint;
-        public UserService(IUserRepository repository, ILogger<UserService> logger, IPublishEndpoint publishEndpoint)
+        private readonly INotificationQueuePublisher _notificationQueuePublisher;
+        public UserService(
+            IUserRepository repository,
+            ILogger<UserService> logger,
+            IPublishEndpoint publishEndpoint,
+            INotificationQueuePublisher notificationQueuePublisher)
         {
             _repository = repository;
             _logger = logger;
             _publishEndpoint = publishEndpoint;
+            _notificationQueuePublisher = notificationQueuePublisher;
         }
         public async Task<IEnumerable<User>?> GetAll() => await _repository.GetAllAsync();
 
@@ -73,6 +79,10 @@ namespace FCG.UsersAPI.Application.Services
                 });
 
                 _logger.LogInformation("UserCreatedEvent publicado para usuário {UserId}",createdUser.Id);
+
+                // Dual-publish: mesma informação também vai para SQS, fora do RabbitMQ.
+                await _notificationQueuePublisher.PublishUserCreatedAsync(
+                    createdUser.Id, createdUser.Name, createdUser.Email.Value, createdUser.CreatedAt);
 
                 _logger.LogInformation("Usuário criado com sucesso: {Email}", request.Email);
 

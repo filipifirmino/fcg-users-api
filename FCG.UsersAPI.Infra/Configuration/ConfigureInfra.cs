@@ -1,5 +1,8 @@
-﻿using FCG.Events;
+﻿using Amazon.SQS;
+using FCG.Events;
+using FCG.UsersAPI.Application.Interfaces;
 using FCG.UsersAPI.Domain.Interfaces;
+using FCG.UsersAPI.Infra.Messaging;
 using FCG.UsersAPI.Infra.Repositories;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +15,13 @@ public static class ConfigureInfra
     private static void AddRepository(this IServiceCollection services)
     {
         services.AddScoped<IUserRepository, UserRepository>();
+    }
+
+    private static void AddAwsMessaging(this IServiceCollection services)
+    {
+        // Credenciais/região via variáveis de ambiente padrão da AWS (fcg-shared-secret).
+        services.AddAWSService<IAmazonSQS>();
+        services.AddScoped<INotificationQueuePublisher, SqsNotificationQueuePublisher>();
     }
 
     private static void AddRabbitMq(
@@ -46,5 +56,6 @@ public static class ConfigureInfra
     {
         services.AddRepository();
         services.AddRabbitMq(configuration);
+        services.AddAwsMessaging();
     }
 }

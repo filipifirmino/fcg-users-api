@@ -2,7 +2,9 @@
 using FCG.UsersAPI.Api.Middlewares;
 using FCG.UsersAPI.Infra;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
+using Prometheus;
 using Serilog;
 using System.Text.Json.Serialization;
 using FCG.UsersAPI.Infra.Configuration;
@@ -24,6 +26,9 @@ namespace FCG.UsersAPI.Api
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddHealthChecks()
+                .AddCheck("self", () => HealthCheckResult.Healthy("API is running"));
+
             services.AddControllers()
                 .AddJsonOptions(options =>
                 {
@@ -83,8 +88,13 @@ namespace FCG.UsersAPI.Api
             app.UseSwagger();
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Users API v1"));
 
-            app.UseHttpsRedirection();
+            app.UseWhen(context => !context.Request.Path.StartsWithSegments("/health") && !context.Request.Path.StartsWithSegments("/metrics"), branch =>
+            {
+                branch.UseHttpsRedirection();
+            });
+
             app.UseRouting();
+            app.UseHttpMetrics();
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseGlobalExceptionHandler();
@@ -92,6 +102,20 @@ namespace FCG.UsersAPI.Api
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+                {
+                    ResponseWriter = async (context, report) =>
+                    {
+                        context.Response.ContentType = "application/json";
+                        var result = System.Text.Json.JsonSerializer.Serialize(new
+                        {
+                            status = report.Status.ToString(),
+                            checks = report.Entries.Select(e => new { name = e.Key, status = e.Value.Status.ToString(), description = e.Value.Description })
+                        });
+                        await context.Response.WriteAsync(result);
+                    }
+                }).AllowAnonymous();
+                endpoints.MapMetrics().AllowAnonymous();
             });
         }
     }
