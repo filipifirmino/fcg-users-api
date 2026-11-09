@@ -186,14 +186,14 @@ public record UserCreatedEvent
 
 | Variável | Descrição | Padrão (dev) |
 |---|---|---|
-| `ConnectionStrings__Postgres` | Connection string do PostgreSQL | `Host=postgres;Port=5432;Database=fcg_users_db;Username=fcg;Password=fcg_secret` |
+| `ConnectionStrings__Postgres` | Connection string do PostgreSQL | `Host=postgres;Port=5432;Database=fcg_users_db;Username=fcg;Password=<senha-do-postgres>` |
 | `Jwt__SecretKey` | Chave secreta do JWT (compartilhada com CatalogAPI) | — |
 | `Jwt__Issuer` | Issuer do token | `FCG.UsersAPI` |
 | `Jwt__Audience` | Audience do token | `FCG.Client` |
 | `Jwt__ExpirationMinutes` | Tempo de expiração do token em minutos | `60` |
 | `RabbitMq__Host` | Host do RabbitMQ | `rabbitmq` |
 | `RabbitMq__Username` | Usuário do RabbitMQ | `guest` |
-| `RabbitMq__Password` | Senha do RabbitMQ | `guest` |
+| `RabbitMq__Password` | Senha do RabbitMQ | — |
 
 ---
 
@@ -218,7 +218,7 @@ A API estará disponível em:
 Certifique-se de ter PostgreSQL 16 e RabbitMQ acessíveis localmente ou via Docker:
 
 ```bash
-docker run -d --name postgres -e POSTGRES_USER=fcg -e POSTGRES_PASSWORD=fcg_secret -e POSTGRES_DB=fcg_users_db -p 5432:5432 postgres:16-alpine
+docker run -d --name postgres -e POSTGRES_USER=fcg -e POSTGRES_PASSWORD=<senha-do-postgres> -e POSTGRES_DB=fcg_users_db -p 5432:5432 postgres:16-alpine
 docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management-alpine
 ```
 
@@ -250,7 +250,7 @@ kubectl apply -f k8s/
 |---|---|
 | `00-namespace.yaml` | Cria o namespace `fcg` (aplicado primeiro automaticamente por ordem alfabética) |
 | `configmap.yaml` | `Jwt__Issuer`, `Jwt__Audience`, `Jwt__ExpirationMinutes`, `RabbitMq__Host`, `RabbitMq__Username` |
-| `secret.yaml` | `ConnectionStrings__Postgres`, `Jwt__SecretKey`, `RabbitMq__Password` (base64) |
+| `secret.yaml` (não versionado) | `ConnectionStrings__Postgres`, `Jwt__SecretKey`, `RabbitMq__Password` (base64) — criado por `fcg-infra/scripts/create-secrets.*` (local) ou pelo ExternalSecret (EKS) |
 | `deployment.yaml` | Deployment com 1 réplica |
 | `service.yaml` | Service `ClusterIP`, porta 8080 |
 

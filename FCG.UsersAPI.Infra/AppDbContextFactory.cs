@@ -10,7 +10,7 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
 
         optionsBuilder.UseNpgsql(
-                "Host=localhost;Port=5433;Database=fcg_users;Username=postgree;Password=postgree")
+                Environment.GetEnvironmentVariable("ConnectionStrings__Postgres") ?? throw new InvalidOperationException("Defina ConnectionStrings__Postgres para executar migrations"))
             .UseSnakeCaseNamingConvention();
 
         return new AppDbContext(optionsBuilder.Options);

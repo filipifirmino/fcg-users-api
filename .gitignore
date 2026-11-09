@@ -398,3 +398,7 @@ FodyWeavers.xsd
 .vs/GitHubRepo/DesignTimeBuild/.dtbcache.v2
 .vs/GitHubRepo/DesignTimeBuild/.dtbcache.v2
 *.v2
+
+# Segredos: nunca versionar (ver .env.example; no cluster ver fcg-infra/k8s/external-secrets)
+.env
+k8s/**/secret.yaml
