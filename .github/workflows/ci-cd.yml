@@ -1,0 +1,17 @@
+name: ci-cd
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pipeline:
+    uses: filipifirmino/fcg-infra/.github/workflows/dotnet-service-cicd.yml@main
+    with:
+      solution: FCG.UsersAPI.slnx
+      ecr-repository: fcg-users-api
+      deployment: users-api
+    permissions:
+      id-token: write
+      contents: read

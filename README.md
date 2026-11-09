@@ -16,7 +16,7 @@ Microsserviço responsável pelo cadastro, autenticação JWT e autorização de
 - [Variáveis de Ambiente](#variáveis-de-ambiente)
 - [Rodando com Docker](#rodando-com-docker)
 - [Rodando localmente](#rodando-localmente)
-- [Kubernetes](#kubernetes)
+- [Kubernetes e CI/CD](#kubernetes-e-cicd)
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Logs](#logs)
 
@@ -237,26 +237,11 @@ dotnet run --project FCG.UsersAPI.Api/FCG.UsersAPI.Api.csproj
 
 ---
 
-## Kubernetes
+## Kubernetes e CI/CD
 
-Os manifests estão em `/k8s/`, e todos os recursos devem ser criados no namespace `fcg`:
+Os manifests ficam em **`fcg-infra/k8s/`** (fonte única, namespace `fcg`); este repositório não mantém cópias. O deploy é feito pelo GitHub Actions (`.github/workflows/ci-cd.yml`, que chama o workflow reutilizável de `fcg-infra`): a cada push em `main` roda build e testes, gera a imagem com tag do commit (SHA curto), faz scan com Trivy, publica no ECR e atualiza o Deployment no EKS com rolling update sem downtime. Em pull requests roda apenas build e testes.
 
-```bash
-kubectl apply -f k8s/00-namespace.yaml
-kubectl apply -f k8s/
-```
-
-| Arquivo | Descrição |
-|---|---|
-| `00-namespace.yaml` | Cria o namespace `fcg` (aplicado primeiro automaticamente por ordem alfabética) |
-| `configmap.yaml` | `Jwt__Issuer`, `Jwt__Audience`, `Jwt__ExpirationMinutes`, `RabbitMq__Host`, `RabbitMq__Username` |
-| `secret.yaml` (não versionado) | `ConnectionStrings__Postgres`, `Jwt__SecretKey`, `RabbitMq__Password` (base64) — criado por `fcg-infra/scripts/create-secrets.*` (local) ou pelo ExternalSecret (EKS) |
-| `deployment.yaml` | Deployment com 1 réplica |
-| `service.yaml` | Service `ClusterIP`, porta 8080 |
-
-> **JWT compartilhado:** `Jwt__SecretKey` e `Jwt__Issuer` precisam ser idênticos aos do CatalogAPI — é o mesmo token que valida a compra do jogo.
-
----
+Variável necessária no repositório do GitHub: `AWS_ROLE_ARN` (output `github_actions_role_arn` do Terraform em `fcg-infra/terraform`), além de um *environment* `production`.
 
 ## Estrutura do Projeto
 
@@ -300,7 +285,7 @@ fcg-users-api/
 │   ├── Integration/
 │   └── BDD/
 │
-├── k8s/                        # Manifests Kubernetes (namespace fcg)
+├── .github/workflows/          # Pipeline CI/CD (chama o workflow de fcg-infra)
 ├── docker-compose.yml
 └── Dockerfile
 ```

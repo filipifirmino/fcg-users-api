@@ -1,3 +1,4 @@
+using FCG.UsersAPI.Application.Interfaces;
 using FCG.UsersAPI.Domain.Entities;
 using FCG.UsersAPI.Domain.ValueObjects;
 using FCG.UsersAPI.Infra;
@@ -61,6 +62,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<FCG.UsersAPI.Ap
             foreach (var d in publishDescriptors) services.Remove(d);
 
             services.AddSingleton(Mock.Of<IPublishEndpoint>());
+
+            var queuePublisherDescriptors = services
+                .Where(d => d.ServiceType == typeof(INotificationQueuePublisher))
+                .ToList();
+            foreach (var d in queuePublisherDescriptors) services.Remove(d);
+
+            services.AddSingleton(Mock.Of<INotificationQueuePublisher>());
         });
     }
 
