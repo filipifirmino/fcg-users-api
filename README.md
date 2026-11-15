@@ -110,7 +110,13 @@ Todas as respostas seguem o envelope padronizado `ApiResponse<T>` com os campos 
 
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `POST` | `/api/v1/Auth/login` | Não | Login — retorna JWT Bearer |
+| `POST` | `/api/v1/Auth/login` | Não | Login — retorna JWT Bearer. Formato inválido → `400`; credenciais inválidas (e-mail inexistente ou senha incorreta) → `401` |
+
+### Saúde
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/health` | Health check (API e bus do MassTransit); usado pelas probes do Kubernetes. Pelo Kong: `/health/users` |
 
 ### Usuários — `/api/v1/User`
 
@@ -194,6 +200,10 @@ public record UserCreatedEvent
 | `RabbitMq__Host` | Host do RabbitMQ | `rabbitmq` |
 | `RabbitMq__Username` | Usuário do RabbitMQ | `guest` |
 | `RabbitMq__Password` | Senha do RabbitMQ | — |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` | Credenciais do IAM user `fcg-services` (publicação na fila SQS de notificações) | — / — / `us-east-1` |
+| `Aws__Sqs__UserCreatedQueueUrl` | URL da fila SQS `fcg-user-created` | — |
+
+Não há valores padrão para segredos: a API falha ao subir se `ConnectionStrings__Postgres` ou `Jwt__SecretKey` estiverem ausentes. Os valores vêm de variáveis de ambiente (Docker Compose via `.env` em `fcg-infra`) ou de Secrets do Kubernetes, nunca de arquivos versionados.
 
 ---
 
@@ -207,7 +217,7 @@ docker compose up -d
 
 A API estará disponível em:
 - **HTTP:** `http://localhost:8080`
-- **Swagger UI:** `http://localhost:8080/swagger`
+- **Swagger UI:** `http://localhost:8080/swagger` (no EKS não passa pelo Kong; use `kubectl port-forward svc/users-api 8081:80 -n fcg` e abra `http://localhost:8081/swagger`)
 
 ---
 
