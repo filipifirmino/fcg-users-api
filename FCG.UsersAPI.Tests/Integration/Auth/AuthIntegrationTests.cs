@@ -77,13 +77,13 @@ public class AuthIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task Login_WrongPassword_ReturnsServerError()
+    public async Task Login_WrongPassword_Returns401()
     {
         await _factory.SeedUserAsync("Wrong Pass", "wrongpass@fcg.com", "Senha@123");
         var client = _factory.CreateClient();
 
         var response = await client.PostAsync($"{BaseRoute}/login", Json(LoginBody("wrongpass@fcg.com", "OutraSenha@9")));
 
-        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }

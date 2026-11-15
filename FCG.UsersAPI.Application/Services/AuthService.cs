@@ -40,7 +40,7 @@ namespace FCG.UsersAPI.Application.Services
                 if (!passwordValid)
                 {
                     logger.LogWarning("Senha inválida para usuário: {Email}", request.Email);
-                    throw new AuthenticationException("Credenciais inválidas");
+                    return Result<LoginResponseDto>.Failure("Credenciais inválidas.");
                 }
 
                 var token = tokenService.GenerateToken(user);

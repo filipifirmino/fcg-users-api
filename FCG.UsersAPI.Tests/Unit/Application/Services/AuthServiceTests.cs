@@ -109,7 +109,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task AuthenticateAsync_WrongPassword_ThrowsAuthenticationException()
+    public async Task AuthenticateAsync_WrongPassword_ReturnsFailure()
     {
         var user = CreateUser("user@fcg.com");
         var request = new LoginRequestDto
@@ -120,9 +120,10 @@ public class AuthServiceTests
         _userRepositoryMock.Setup(r => r.GetUserByEmail(request.Email, default))
             .ReturnsAsync(user);
 
-        var act = async () => await _sut.AuthenticateAsync(request);
+        var result = await _sut.AuthenticateAsync(request);
 
-        await act.Should().ThrowAsync<AuthenticationException>();
+        result.IsSuccess.Should().BeFalse();
+        result.Errors.Should().Contain("Credenciais inválidas.");
     }
 
     [Fact]
